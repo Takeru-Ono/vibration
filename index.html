@@ -25,34 +25,37 @@
 
         const statusElem = document.getElementById("status");
         let lastVibrateTime = 0;
+        const VIBRATE_THRESHOLD = 50; // バイブレーションを作動させる音量の閾値
+        const VIBRATE_DURATION = 200; // バイブレーションの持続時間（ミリ秒）
 
         function processAudio() {
           analyser.getByteFrequencyData(dataArray);
-          // 配列全体の平均値を計算
           let sum = dataArray.reduce((acc, value) => acc + value, 0);
           let average = sum / dataArray.length;
 
           statusElem.textContent = "平均音量：" + Math.floor(average);
 
-          // 平均値がある閾値を超えたらバイブレーションを実行
-          if (average > 50) {
+          if (average > VIBRATE_THRESHOLD) {
             const now = Date.now();
-            // 連続して振動しないように、前回から200ms以上経過しているかチェック
-            if (now - lastVibrateTime > 200) {
-              // 200msのバイブレーション
-              navigator.vibrate(200);
+            if (now - lastVibrateTime > VIBRATE_DURATION) {
+              navigator.vibrate(VIBRATE_DURATION);
               lastVibrateTime = now;
             }
           }
-          requestAnimationFrame(processAudio);
         }
-        processAudio();
-      } catch (error) {
-        alert("マイクへのアクセスが拒否されました。");
-        console.error(error);
+
+        function loop() {
+          processAudio();
+          requestAnimationFrame(loop);
+        }
+
+        loop();
+      } catch (err) {
+        console.error('Error accessing microphone', err);
       }
     }
-    init();
+
+    window.addEventListener('load', init);
   </script>
 </body>
 </html>
