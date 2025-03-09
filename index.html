@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -24,9 +25,8 @@
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
         const statusElem = document.getElementById("status");
-        let lastVibrateTime = 0;
         const VIBRATE_THRESHOLD = 50; // バイブレーションを作動させる音量の閾値
-        const VIBRATE_DURATION = 200; // バイブレーションの持続時間（ミリ秒）
+        const VIBRATE_DURATION = 50; // バイブレーションの持続時間（ミリ秒）
 
         function processAudio() {
           analyser.getByteFrequencyData(dataArray);
@@ -36,11 +36,9 @@
           statusElem.textContent = "平均音量：" + Math.floor(average);
 
           if (average > VIBRATE_THRESHOLD) {
-            const now = Date.now();
-            if (now - lastVibrateTime > VIBRATE_DURATION) {
-              navigator.vibrate(VIBRATE_DURATION);
-              lastVibrateTime = now;
-            }
+            navigator.vibrate(VIBRATE_DURATION);
+          } else {
+            navigator.vibrate(0); // バイブレーションを停止
           }
         }
 
