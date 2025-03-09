@@ -1,59 +1,50 @@
-
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>声でバイブレーション</title>
-  <style>
-    body { text-align: center; font-family: sans-serif; margin-top: 50px; }
-  </style>
+    <title>Vibration on Sound</title>
 </head>
 <body>
-  <h2>声でバイブを動かしてみよう！</h2>
-  <p>マイクへのアクセスを許可してください。</p>
-  <p id="status">待機中...</p>
-  <script>
-    async function init() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    <h1>Vibration on Sound</h1>
+    <script>
+        // Web Audio APIの初期化
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        const microphone = audioContext.createMediaStreamSource(stream);
-        microphone.connect(analyser);
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        let analyser = audioContext.createAnalyser();
+        let microphone;
 
-        const statusElem = document.getElementById("status");
-        const VIBRATE_THRESHOLD = 50; // バイブレーションを作動させる音量の閾値
-        const VIBRATE_DURATION = 50; // バイブレーションの持続時間（ミリ秒）
+        // マイクからの音声入力を取得
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                analyser.fftSize = 2048;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
 
-        function processAudio() {
-          analyser.getByteFrequencyData(dataArray);
-          let sum = dataArray.reduce((acc, value) => acc + value, 0);
-          let average = sum / dataArray.length;
+                // 音量監視
+                function monitorVolume() {
+                    analyser.getByteTimeDomainData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < bufferLength; i++) {
+                        sum += Math.abs(dataArray[i] - 128);
+                    }
+                    let average = sum / bufferLength;
 
-          statusElem.textContent = "平均音量：" + Math.floor(average);
+                    // 一定以上の音量の場合、バイブレーションを作動
+                    if (average > 50) { // 音量の閾値
+                        if ("vibrate" in navigator) {
+                            navigator.vibrate(200); // 200ms振動
+                        } else {
+                            alert("Vibration API not supported!");
+                        }
+                    }
+                    requestAnimationFrame(monitorVolume);
+                }
 
-          if (average > VIBRATE_THRESHOLD) {
-            navigator.vibrate(VIBRATE_DURATION);
-          } else {
-            navigator.vibrate(0); // バイブレーションを停止
-          }
-        }
-
-        function loop() {
-          processAudio();
-          requestAnimationFrame(loop);
-        }
-
-        loop();
-      } catch (err) {
-        console.error('Error accessing microphone', err);
-      }
-    }
-
-    window.addEventListener('load', init);
-  </script>
+                monitorVolume();
+            })
+            .catch(err => {
+                console.error("Error getting microphone input:", err);
+            });
+    </script>
 </body>
 </html>
